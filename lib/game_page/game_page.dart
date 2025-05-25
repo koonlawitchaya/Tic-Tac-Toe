@@ -7,14 +7,27 @@ import '../utils/utils.dart';
 enum Difficulty { easy, medium }
 
 class GamePage extends StatefulWidget {
+  final int boardSize;
+  final bool playWithBot;
+  final Difficulty difficulty;
+
+  const GamePage({
+    super.key,
+    required this.boardSize,
+    required this.playWithBot,
+    required this.difficulty,
+  });
+
   @override
-  _GamePageState createState() => _GamePageState();
+  State<GamePage> createState() => _GamePageState();
 }
 
 class _GamePageState extends State<GamePage> {
-  int boardSize = 3;
-  Difficulty difficulty = Difficulty.easy;
   late List<List<String>> board;
+  late int boardSize;
+  late bool playWithBot;
+  late Difficulty difficulty;
+
   String currentPlayer = "X";
   bool gameOver = false;
   String winner = "";
@@ -24,6 +37,9 @@ class _GamePageState extends State<GamePage> {
   @override
   void initState() {
     super.initState();
+    boardSize = widget.boardSize;
+    playWithBot = widget.playWithBot;
+    difficulty = widget.difficulty;
     resetBoard();
   }
 

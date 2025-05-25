@@ -18,7 +18,14 @@ class MyApp extends StatelessWidget {
       title: 'XO Game',
       routes: {
         '/': (context) => GameSetupScreen(),
-        '/game': (context) => GamePage(),
+        '/game': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map;
+          return GamePage(
+            boardSize: args['boardSize'],
+            playWithBot: args['playWithBot'],
+            difficulty: args['difficulty'],
+          );
+        },
         '/history': (context) => HistoryPage(),
       },
       initialRoute: '/',

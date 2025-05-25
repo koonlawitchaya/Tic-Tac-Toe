@@ -50,7 +50,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                 ],
               ),
               Text(
-                'Tic Tac Toe!',
+                'Tic Tac Toe !',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
