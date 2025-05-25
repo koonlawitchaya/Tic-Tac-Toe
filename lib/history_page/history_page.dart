@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart';
 
 import '../utils/utils.dart';
 import '../replay_page/replay_page.dart';
@@ -20,30 +21,33 @@ class _HistoryPageState extends State<HistoryPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.delete_sweep),
-            tooltip: 'ลบประวัติทั้งหมด',
+            tooltip: 'Delete All History',
             onPressed: () async {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: Text('ลบประวัติทั้งหมด?'),
-                  content: Text('แน่ใจหรือไม่ว่าต้องการล้างประวัติทั้งหมด?'),
+                  title: Text('Delete All History?'),
+                  content: Text(
+                      'You are about to delete all game history. This action cannot be undone. Do you want to proceed?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(false),
-                      child: Text('ยกเลิก'),
+                      child: Text('Cancel'),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(true),
-                      child: Text('ลบ', style: TextStyle(color: Colors.red)),
+                      child:
+                          Text('Delete', style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
               );
               if (confirm == true) {
                 await historyBox.clear();
-                setState(() {});
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('ลบประวัติเกมทั้งหมดแล้ว')));
+                  SnackBar(
+                      content: Text('All game history deleted successfully.')),
+                );
               }
             },
           ),
@@ -51,49 +55,87 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
       body: ValueListenableBuilder(
         valueListenable: historyBox.listenable(),
-        builder: (context, box, _) {
-          final games = box.values.toList();
-          if (games.isEmpty) {
+        builder: (context, Box box, _) {
+          // สร้างรายการที่มีข้อมูลจำเป็น {key, history, timestamp}
+          final items = box.keys
+              .cast()
+              .map((key) {
+                final data = box.get(key);
+                if (data is Map &&
+                    data.containsKey('history') &&
+                    data.containsKey('timestamp')) {
+                  final history = castHistory(data['history']);
+                  DateTime? timestamp;
+                  if (data['timestamp'] is DateTime) {
+                    timestamp = data['timestamp'];
+                  } else if (data['timestamp'] is String) {
+                    timestamp = DateTime.tryParse(data['timestamp']);
+                  }
+                  return {
+                    'key': key,
+                    'history': history,
+                    'timestamp': timestamp,
+                  };
+                }
+                return null;
+              })
+              .where((e) => e != null && e['timestamp'] != null)
+              .toList();
+
+          // ** sort by timestamp (ใหม่ก่อน) **
+          items.sort((a, b) => b!['timestamp'].compareTo(a!['timestamp']));
+
+          if (items.isEmpty) {
             return Center(child: Text('No games played yet.'));
           }
+
           return ListView.builder(
-            itemCount: games.length,
-            itemBuilder: (context, idx) {
-              final history = castHistory(games[idx]);
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final game = items[i]!;
+              final key = game['key'];
+              final history = game['history'];
+              final timestamp = game['timestamp'] as DateTime;
               final lastBoard = history.last;
-              String result = calculateResult(lastBoard);
+              final result = calculateResult(lastBoard);
+
+              final formattedTime =
+                  DateFormat('yyyy-MM-dd HH:mm').format(timestamp);
 
               return ListTile(
-                leading: Text('#${idx + 1}'),
+                leading: Icon(Icons.history),
                 title: Text('Result: $result'),
-                subtitle: Text('Tap to replay'),
+                subtitle: Text('Played on $formattedTime'),
                 trailing: IconButton(
                   icon: Icon(Icons.delete, color: Colors.red),
-                  tooltip: 'ลบประวัติเกมนี้',
+                  tooltip: 'Delete Game History',
                   onPressed: () async {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: Text('ลบประวัติเกมนี้?'),
-                        content: Text('ต้องการลบประวัติเกมนี้หรือไม่?'),
+                        title: Text('Delete Game History?'),
+                        content: Text(
+                            'Are you sure you want to delete this game history?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(ctx).pop(false),
-                            child: Text('ยกเลิก'),
+                            child: Text('Cancel'),
                           ),
                           TextButton(
                             onPressed: () => Navigator.of(ctx).pop(true),
-                            child:
-                                Text('ลบ', style: TextStyle(color: Colors.red)),
+                            child: Text('Delete',
+                                style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
                     );
                     if (confirm == true) {
-                      await historyBox.deleteAt(idx);
-                      setState(() {});
+                      await historyBox.delete(key);
                       ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('ลบประวัติเกมเรียบร้อย')));
+                        SnackBar(
+                            content:
+                                Text('Game history deleted successfully.')),
+                      );
                     }
                   },
                 ),
@@ -102,7 +144,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     context,
                     MaterialPageRoute(
                       builder: (_) =>
-                          ReplayPage(history: history, gameIndex: idx),
+                          ReplayPage(history: history, gameIndex: key),
                     ),
                   );
                 },

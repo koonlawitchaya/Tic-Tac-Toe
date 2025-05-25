@@ -12,11 +12,11 @@ class GamePage extends StatefulWidget {
   final Difficulty difficulty;
 
   const GamePage({
-    super.key,
+    Key? key,
     required this.boardSize,
     required this.playWithBot,
     required this.difficulty,
-  });
+  }) : super(key: key);
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -51,14 +51,19 @@ class _GamePageState extends State<GamePage> {
     gameHistory.clear();
     winCells.clear();
     setState(() {});
-    if (currentPlayer == "O") botMove();
+    if (playWithBot && currentPlayer == "O") botMove();
   }
 
   void saveGameToHistory() async {
     final historyBox = Hive.box('game_history');
-    await historyBox.add(gameHistory
-        .map((b) => b.map((r) => List<String>.from(r)).toList())
-        .toList());
+    await historyBox.add({
+      'history': gameHistory
+          .map((b) => b.map((r) => List<String>.from(r)).toList())
+          .toList(),
+      'timestamp': DateTime.now().toIso8601String(),
+      'playWithBot': playWithBot,
+      'difficulty': difficulty.toString().split('.').last,
+    });
   }
 
   void botMove() async {
@@ -68,7 +73,7 @@ class _GamePageState extends State<GamePage> {
     Point<int>? move;
     if (difficulty == Difficulty.easy) {
       move = getRandomMove();
-    } else if (difficulty == Difficulty.medium) {
+    } else {
       move = getMediumBotMove();
     }
 
@@ -146,17 +151,14 @@ class _GamePageState extends State<GamePage> {
 
   void checkWinner() {
     winCells.clear();
-    // check row
     for (int i = 0; i < boardSize; i++) {
       if (board[i].every((cell) => cell == currentPlayer)) {
         winner = currentPlayer;
         gameOver = true;
-        // Add all that row
         winCells = [for (int j = 0; j < boardSize; j++) Point(i, j)];
         return;
       }
     }
-    // check column
     for (int i = 0; i < boardSize; i++) {
       if (List.generate(boardSize, (j) => board[j][i])
           .every((cell) => cell == currentPlayer)) {
@@ -166,7 +168,6 @@ class _GamePageState extends State<GamePage> {
         return;
       }
     }
-    // Diagonal LTR
     if (List.generate(boardSize, (i) => board[i][i])
         .every((cell) => cell == currentPlayer)) {
       winner = currentPlayer;
@@ -174,7 +175,6 @@ class _GamePageState extends State<GamePage> {
       winCells = [for (int k = 0; k < boardSize; k++) Point(k, k)];
       return;
     }
-    // Diagonal RTL
     if (List.generate(boardSize, (i) => board[i][boardSize - 1 - i])
         .every((cell) => cell == currentPlayer)) {
       winner = currentPlayer;
@@ -184,7 +184,6 @@ class _GamePageState extends State<GamePage> {
       ];
       return;
     }
-    // Draw
     if (board.every((row) => row.every((cell) => cell != ""))) {
       winner = "Draw";
       gameOver = true;
@@ -193,14 +192,18 @@ class _GamePageState extends State<GamePage> {
   }
 
   void handleTap(int row, int col) {
-    if (board[row][col] != "" || gameOver || currentPlayer != "X") return;
+    if (board[row][col] != "" || gameOver) return;
+    if (playWithBot && currentPlayer != "X") return;
+
     setState(() {
       board[row][col] = currentPlayer;
       gameHistory.add(_cloneBoard());
       checkWinner();
       if (!gameOver) {
-        currentPlayer = "O";
-        botMove();
+        currentPlayer = currentPlayer == "X" ? "O" : "X";
+        if (playWithBot && currentPlayer == "O") {
+          botMove();
+        }
       } else {
         saveGameToHistory();
       }
@@ -252,10 +255,22 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('XO Game ($boardSize x $boardSize)'),
+        backgroundColor: Colors.lightBlue[200],
+        title: Text(
+          'Tic Tac Toe ! ($boardSize x $boardSize)',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.history),
+            icon: Icon(
+              Icons.history,
+              color: Colors.black,
+              size: 28,
+            ),
             onPressed: () async {
               await Navigator.push(
                 context,
@@ -263,86 +278,99 @@ class _GamePageState extends State<GamePage> {
               );
             },
           ),
-          PopupMenuButton<int>(
-            onSelected: changeBoardSize,
-            itemBuilder: (context) => [
-              for (int i = 3; i <= 5; i++)
-                PopupMenuItem(
-                  value: i,
-                  child: Text('$i x $i'),
-                ),
-            ],
-          ),
-          PopupMenuButton<Difficulty>(
-            onSelected: changeDifficulty,
-            icon: Icon(Icons.smart_toy),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: Difficulty.easy,
-                child: Text('Easy'),
-              ),
-              PopupMenuItem(
-                value: Difficulty.medium,
-                child: Text('Medium'),
-              ),
-            ],
-          ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          children: [
-            if (!gameOver)
+      body: Container(
+        color: Colors.lightBlue[200],
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 100),
+          child: Column(
+            children: [
               Text(
-                "${currentPlayer}'s Turn",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                gameOver
+                    ? (winner == "Draw" ? "It's a draw!" : "$winner wins!")
+                    : "$currentPlayer's Turn",
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black),
               ),
-            if (gameOver)
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(winner == "Draw" ? "It's a draw!" : "$winner wins!",
-                    style: TextStyle(fontSize: 24)),
-              ),
-            SizedBox(height: 16),
-            Expanded(
-              child: GridView.builder(
-                itemCount: boardSize * boardSize,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: boardSize,
+              SizedBox(height: 8),
+              Text(
+                playWithBot
+                    ? 'Playing with: Bot (${difficulty == Difficulty.easy ? "Easy" : "Medium"})'
+                    : 'Playing with: Player',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800],
                 ),
-                itemBuilder: (context, index) {
-                  final row = index ~/ boardSize;
-                  final col = index % boardSize;
-                  bool isWinCell =
-                      gameOver && winCells.contains(Point(row, col));
-                  return GestureDetector(
-                    onTap: () => handleTap(row, col),
-                    child: Container(
-                      margin: EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: isWinCell
-                            ? Colors.yellow.shade300
-                            : Colors.blue.shade100,
-                        border: Border.all(color: Colors.black45, width: 1),
-                      ),
-                      child: Center(
-                        child: Text(
-                          board[row][col],
-                          style: TextStyle(
-                              fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Expanded(
+                child: GridView.builder(
+                  itemCount: boardSize * boardSize,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: boardSize,
+                  ),
+                  itemBuilder: (context, index) {
+                    final row = index ~/ boardSize;
+                    final col = index % boardSize;
+                    bool isWinCell =
+                        gameOver && winCells.contains(Point(row, col));
+                    return GestureDetector(
+                      onTap: () => handleTap(row, col),
+                      child: Container(
+                        margin: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isWinCell ? Colors.amberAccent : Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.black26),
+                        ),
+                        child: Center(
+                          child: Text(
+                            board[row][col],
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: board[row][col] == "X"
+                                  ? Colors.redAccent
+                                  : Colors.black,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: resetBoard,
-              child: Text('Restart'),
-            )
-          ],
+              SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: resetBoard,
+                icon: Icon(
+                  Icons.replay,
+                  size: 24,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  'Restart',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              SizedBox(height: 50),
+            ],
+          ),
         ),
       ),
     );

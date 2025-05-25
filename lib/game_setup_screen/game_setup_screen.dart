@@ -94,7 +94,6 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                   }),
                 ),
               ),
-
               SizedBox(height: 16),
               Text(
                 'Game Setup',
@@ -105,63 +104,92 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                 ),
               ),
               SizedBox(height: 24),
-
-              /// Dropdowns
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  BoardSizeDropdown(
-                    currentSize: boardSize,
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => boardSize = v);
-                      }
-                    },
-                  ),
-                  SizedBox(width: 16),
-                  DropdownButton<bool>(
-                    value: playWithBot,
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    items: const [
-                      DropdownMenuItem(child: Text('vs Bot'), value: true),
-                      DropdownMenuItem(child: Text('2 Players'), value: false),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => playWithBot = v);
-                      }
-                    },
-                  ),
-                  SizedBox(width: 16),
-                  if (playWithBot)
-                    BotDifficultyDropdown(
-                      difficulty: difficulty,
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    BoardSizeDropdown(
+                      currentSize: boardSize,
                       onChanged: (v) {
                         if (v != null) {
-                          setState(() => difficulty = v);
+                          setState(() => boardSize = v);
                         }
                       },
                     ),
-                ],
+                    SizedBox(width: 16),
+                    DropdownButton<bool>(
+                      value: playWithBot,
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      items: const [
+                        DropdownMenuItem(
+                          child: Text(
+                            'vs Bot',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          value: true,
+                        ),
+                        DropdownMenuItem(
+                          child: Text(
+                            '2 Players',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          value: false,
+                        ),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) {
+                          setState(() => playWithBot = v);
+                        }
+                      },
+                    ),
+                    SizedBox(width: 16),
+                    if (playWithBot)
+                      BotDifficultyDropdown(
+                        difficulty: difficulty,
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() => difficulty = v);
+                          }
+                        },
+                      ),
+                  ],
+                ),
               ),
               SizedBox(height: 20),
               OutlinedButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/history'),
                 icon: Icon(
                   Icons.history,
+                  color: Colors.blue,
                 ),
                 label: Text(
-                  'ประวัติการเล่น',
+                  'Game History',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 12,
+                    color: Colors.blue,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  minimumSize: Size(
-                    180,
-                    50,
+                  side: BorderSide(
+                    color: Colors.blue,
+                    width: 2,
                   ),
+                  // minimumSize: Size(
+                  //   180,
+                  //   50,
+                  // ),
                 ),
               ),
             ],
@@ -191,11 +219,23 @@ class BotDifficultyDropdown extends StatelessWidget {
       items: const [
         DropdownMenuItem(
           value: Difficulty.easy,
-          child: Text('Easy'),
+          child: Text(
+            'Easy',
+            style: TextStyle(
+              color: Colors.green,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
         DropdownMenuItem(
           value: Difficulty.medium,
-          child: Text('Medium'),
+          child: Text(
+            'Medium',
+            style: TextStyle(
+              color: Colors.orange,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
       onChanged: onChanged,
@@ -219,11 +259,19 @@ class BoardSizeDropdown extends StatelessWidget {
       value: currentSize,
       borderRadius: BorderRadius.circular(12),
       dropdownColor: Colors.white,
-      items: [3, 4, 5]
-          .map((e) => DropdownMenuItem(
-                value: e,
-                child: Text('$e x $e'),
-              ))
+      items: [3, 4, 5, 6]
+          .map(
+            (e) => DropdownMenuItem(
+              value: e,
+              child: Text(
+                '$e x $e',
+                style: TextStyle(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          )
           .toList(),
       onChanged: onChanged,
     );
