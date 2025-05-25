@@ -77,7 +77,7 @@ class _GameSetupScreenState extends State<GameSetupScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.play_arrow,
+                                  Icon(Icons.play_arrow_rounded,
                                       color: Colors.red, size: 36),
                                   SizedBox(height: 4),
                                   Text(
