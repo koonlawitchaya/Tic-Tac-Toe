@@ -1,16 +1,108 @@
-# tictactoe
+# TicTacToe Flutter
 
-A new Flutter project.
+เกม XO (Tic-Tac-Toe) พัฒนาด้วยใช้ Flutter
+เล่นได้ทั้งโหมด 2 คน หรือแข่งกับบอท (เลือกความยาก)
+มีระบบบันทึกประวัติ และ Replay
+ใช้ฐานข้อมูล Hive
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## วิธีติดตั้งและรันโปรแกรม
 
-A few resources to get you started if this is your first Flutter project:
+### 1. ติดตั้ง Flutter
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+* ดาวน์โหลด Flutter SDK: [https://flutter.dev](https://flutter.dev)
+* ตรวจสอบว่าไม่ error ด้วยคำสั่ง:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+flutter doctor
+```
+
+### 2. Clone หรือ Download โค้ด
+
+```sh
+git clone https://github.com/yourname/tictactoe-flutter.git
+cd tictactoe-flutter
+```
+
+### 3. ติดตั้ง dependencies
+
+```sh
+flutter pub get
+```
+
+### 4. Run บน Emulator หรือ มือถือจริง
+
+```sh
+flutter run
+```
+
+---
+
+## วิธีใช้งาน
+
+* เลือกโหมด:
+
+  * 2 คน
+  * แข่งกับบอท (ง่าย / กลาง)
+* แตะช่องว่างเพื่อวาง X หรือ O
+* เมื่อเกมจบ ระบบจะบันทึกอัตโนมัติ
+* กดปุ่ม **History** (มุมขวาบน) เพื่อดูประวัติและ Replay เกม
+
+---
+
+## โครงสร้างโปรแกรม
+
+| ไฟล์          | หน้าที่                                              |
+| ------------- | ---------------------------------------------------- |
+| `main.dart`   | Entry Point ของแอป                                   |
+| `GameSetupScreen`    | จัดการกระดาน, ผู้เล่น, และบอท |
+| `GamePage`    | หน้าหลักสำหรับเล่น XO |
+| `HistoryPage` | แสดงรายละเอียดเกมที่ผ่านมา, ดูผลผู้ชนะ, Replay          |
+| `ReplayPage`  | ย้อนดูการเล่นทีละตาแบบ step-by-step                  |
+| `utils.dart`  | ฟังก์ชั่น เช็คผล, แปลงข้อมูล Hive                    |
+
+---
+
+## โครงสร้างข้อมูล (Hive)
+
+ใช้ Hive box ชื่อ `'game_history'`
+
+1 เกม = 1 record ในรูปแบบ:
+
+```dart
+{
+  'history': [รายการสถานะกระดานทีละตา],
+  'timestamp': '[วันเวลาจบเกม]',
+  'playWithBot': true/false,
+  'difficulty': 'easy' หรือ 'medium',
+}
+```
+
+---
+
+## Algorithm และ Logic
+
+### เช็คผู้ชนะ
+
+* ตรวจแถว: ถ้าแถวใดมี X หรือ O ทั้งแถว = ชนะ
+* ตรวจคอลัมน์: เช่นเดียวกับแถว
+* ตรวจทแยง:
+
+  * จากซ้ายบนไปขวาล่าง
+  * จากขวาบนไปซ้ายล่าง
+* เสมอ: ถ้ากระดานเต็มแล้วยังไม่มีผู้ชนะ
+
+---
+
+### การทำงานของ Bot
+
+**ระดับ Easy**
+
+* สุ่มช่องว่าง
+
+**ระดับ Medium**
+
+* หากมีช่องที่บอทลงแล้วชนะทันที → เลือกช่องนั้น
+* ถ้าไม่มี ตัดเกม: เลือกช่องที่กันผู้เล่นชนะ
+* ถ้าไม่มีทั้งสองข้อ เลือกช่องว่างสุ่ม (เหมือน easy)
